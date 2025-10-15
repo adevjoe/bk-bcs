@@ -93,13 +93,14 @@ func (l *etcdLock) LockWithRetries(key string, unixTsToExpireNs int64) error {
 
 // Lock If TTL is < 1s, the default 1s TTL will be used.
 func (l *etcdLock) Lock(key string, unixTsToExpireNs int64) error {
-	ctx, span := tracer.Start(context.Background(), "etcd-lock.Lock")
 
+	_, span := tracer.Start(l.ctx, "etcd-lock.Lock")
 	defer span.End()
+
 	span.SetAttributes(attribute.String("lock.key", key))
+
 	now := time.Now().UnixNano()
 	expireTTL := time.Duration(unixTsToExpireNs - now)
-
 	// etcd ttl单位是s,往上取整
 	ttl := time.Duration(int(expireTTL.Seconds())) * time.Second
 	if ttl < expireTTL {

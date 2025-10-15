@@ -37,7 +37,7 @@ type revokeSign struct {
 // Revoke etcd revoker send sign
 func (b *etcdRevoker) Revoke(ctx context.Context, taskID string) error {
 
-	ctx, span := tracer.Start(context.Background(), "revoker-lock.Revoke")
+	ctx, span := tracer.Start(ctx, "revoker-lock.Revoke")
 	defer span.End()
 
 	key := revokePrefix + "/" + taskID
