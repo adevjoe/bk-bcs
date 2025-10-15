@@ -36,8 +36,8 @@ const (
 )
 
 var (
+	tracer = otel.Tracer("etcd-lock")
 	// ErrLockFailed ..
-	tracer        = otel.Tracer("etcd-lock")
 	ErrLockFailed = errors.New("etcd lock: failed to acquire lock")
 )
 
