@@ -25,6 +25,10 @@ import (
 	"github.com/RichardKnop/machinery/v2/log"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/concurrency"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"google.golang.org/grpc"
 )
 
 const (
@@ -33,6 +37,7 @@ const (
 
 var (
 	// ErrLockFailed ..
+	tracer        = otel.Tracer("etcd-lock")
 	ErrLockFailed = errors.New("etcd lock: failed to acquire lock")
 )
 
@@ -49,6 +54,9 @@ func New(ctx context.Context, conf *config.Config, retries int) (iface.Lock, err
 		Context:     ctx,
 		DialTimeout: time.Second * 5,
 		TLS:         conf.TLSConfig,
+		DialOptions: []grpc.DialOption{
+			grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+		},
 	}
 
 	client, err := clientv3.New(etcdConf)
@@ -85,6 +93,10 @@ func (l *etcdLock) LockWithRetries(key string, unixTsToExpireNs int64) error {
 
 // Lock If TTL is < 1s, the default 1s TTL will be used.
 func (l *etcdLock) Lock(key string, unixTsToExpireNs int64) error {
+	ctx, span := tracer.Start(context.Background(), "etcd-lock.Lock")
+
+	defer span.End()
+	span.SetAttributes(attribute.String("lock.key", key))
 	now := time.Now().UnixNano()
 	expireTTL := time.Duration(unixTsToExpireNs - now)
 

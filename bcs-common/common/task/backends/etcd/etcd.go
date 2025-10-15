@@ -27,13 +27,19 @@ import (
 	"github.com/RichardKnop/machinery/v2/log"
 	"github.com/RichardKnop/machinery/v2/tasks"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/grpc"
 )
 
 const (
 	groupKey = "/machinery/v2/backend/groups/%s"
 	taskKey  = "/machinery/v2/backend/tasks/%s"
 )
+
+var tracer = otel.Tracer("etcd-backend")
 
 type etcdBackend struct {
 	common.Backend
@@ -48,6 +54,9 @@ func New(ctx context.Context, conf *config.Config) (iface.Backend, error) {
 		Context:     ctx,
 		DialTimeout: time.Second * 5,
 		TLS:         conf.TLSConfig,
+		DialOptions: []grpc.DialOption{
+			grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+		},
 	}
 	client, err := clientv3.New(etcdConf)
 	if err != nil {
@@ -248,6 +257,11 @@ func (b *etcdBackend) GetState(taskUUID string) (*tasks.TaskState, error) {
 }
 
 func (b *etcdBackend) getState(ctx context.Context, taskUUID string) (*tasks.TaskState, error) {
+
+	ctx, span := tracer.Start(ctx, "etcd-backend.GetState")
+	defer span.End()
+
+	span.SetAttributes(attribute.String("task.uuid", taskUUID))
 	key := fmt.Sprintf(taskKey, taskUUID)
 	resp, err := b.client.Get(ctx, key)
 	if err != nil {

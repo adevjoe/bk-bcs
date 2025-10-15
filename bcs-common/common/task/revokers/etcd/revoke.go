@@ -20,6 +20,7 @@ import (
 	"github.com/RichardKnop/machinery/v2/log"
 	"go.etcd.io/etcd/api/v3/mvccpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 const (
@@ -35,7 +36,12 @@ type revokeSign struct {
 
 // Revoke etcd revoker send sign
 func (b *etcdRevoker) Revoke(ctx context.Context, taskID string) error {
+
+	ctx, span := tracer.Start(context.Background(), "revoker-lock.Revoke")
+	defer span.End()
+
 	key := revokePrefix + "/" + taskID
+	span.SetAttributes(attribute.String("revoker.key", key))
 
 	// 2分钟自动过期
 	lease, err := b.client.Grant(ctx, 120)

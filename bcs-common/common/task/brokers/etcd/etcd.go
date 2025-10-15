@@ -31,7 +31,11 @@ import (
 	"github.com/RichardKnop/machinery/v2/log"
 	"github.com/RichardKnop/machinery/v2/tasks"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/grpc"
 )
 
 const (
@@ -40,6 +44,8 @@ const (
 	delayedTaskPrefix  = "/machinery/v2/broker/delayed_tasks"
 	delayedTaskLockKey = "/machinery/v2/lock/delayed_tasks"
 )
+
+var tracer = otel.Tracer("etcd-broker")
 
 type etcdBroker struct {
 	common.Broker
@@ -60,6 +66,9 @@ func New(ctx context.Context, conf *config.Config) (iface.Broker, error) {
 		Context:     ctx,
 		DialTimeout: time.Second * 5,
 		TLS:         conf.TLSConfig,
+		DialOptions: []grpc.DialOption{
+			grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+		},
 	}
 
 	client, err := clientv3.New(etcdConf)
@@ -276,6 +285,9 @@ func (b *etcdBroker) StopConsuming() {
 // Publish put kvs to etcd stor
 func (b *etcdBroker) Publish(ctx context.Context, signature *tasks.Signature) error {
 	// Adjust routing key (this decides which queue the message will be published to)
+	ctx, span := tracer.Start(ctx, "etcd-broker.Publish")
+	defer span.End()
+
 	b.Broker.AdjustRoutingKey(signature)
 
 	msg, err := json.Marshal(signature)
@@ -284,6 +296,7 @@ func (b *etcdBroker) Publish(ctx context.Context, signature *tasks.Signature) er
 	}
 
 	key := fmt.Sprintf("%s/%s/%s", pendingTaskPrefix, signature.RoutingKey, signature.UUID)
+	span.SetAttributes(attribute.String("task.key", key))
 
 	// Check the ETA signature field, alway delay the task if not nil,
 	// prevent the key overwrite by slow ack request
@@ -302,6 +315,11 @@ func (b *etcdBroker) Publish(ctx context.Context, signature *tasks.Signature) er
 }
 
 func (b *etcdBroker) getTasks(ctx context.Context, key string) ([]*tasks.Signature, error) {
+	ctx, span := tracer.Start(ctx, "etcd-backend.GetState")
+	defer span.End()
+
+	span.SetAttributes(attribute.String("task.key", key))
+
 	resp, err := b.client.Get(ctx, key, clientv3.WithPrefix())
 	if err != nil {
 		return nil, err

@@ -21,9 +21,14 @@ import (
 	"github.com/RichardKnop/machinery/v2/config"
 	"github.com/RichardKnop/machinery/v2/log"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/otel"
+	"google.golang.org/grpc"
 
 	"github.com/Tencent/bk-bcs/bcs-common/common/task/revokers/iface"
 )
+
+var tracer = otel.Tracer("revoker-lock")
 
 type etcdRevoker struct {
 	ctx           context.Context
@@ -40,6 +45,9 @@ func New(ctx context.Context, conf *config.Config) (iface.Revoker, error) {
 		Context:     ctx,
 		DialTimeout: time.Second * 5,
 		TLS:         conf.TLSConfig,
+		DialOptions: []grpc.DialOption{
+			grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+		},
 	}
 
 	client, err := clientv3.New(etcdConf)
