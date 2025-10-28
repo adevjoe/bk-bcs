@@ -87,19 +87,19 @@ func startServer() (*machinery.Server, error) {
 	ctx := context.Background()
 	// Create server instance
 	// broker := redisbroker.NewGR(cnf, []string{"localhost:6379"}, 1)
-	broker, err := etcdbroker.New(ctx, conf)
+	broker, err := etcdbroker.New(ctx, conf, false)
 	if err != nil {
 		return nil, err
 	}
 
 	// backend := redisbackend.NewGR(cnf, []string{"localhost:6379"}, 3)
-	backend, err := etcdbackend.New(ctx, conf)
+	backend, err := etcdbackend.New(ctx, conf, false)
 	if err != nil {
 		return nil, err
 	}
 
 	// lock := redislock.New(cnf, []string{"localhost:6379"}, 3, 2)
-	lock, err := etcdlock.New(ctx, conf, 3)
+	lock, err := etcdlock.New(ctx, conf, 3, false)
 	if err != nil {
 		return nil, err
 	}

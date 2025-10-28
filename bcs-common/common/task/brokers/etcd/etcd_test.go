@@ -74,7 +74,7 @@ func TestHandleDelayedTask(t *testing.T) {
 		RoutingKey: "test",
 		ETA:        &eta,
 	}
-	broker, err := New(ctx, &config.Config{Broker: endpoints})
+	broker, err := New(ctx, &config.Config{Broker: endpoints}, false)
 	etcdBroker := broker.(*etcdBroker)
 	require.NoError(t, err)
 
@@ -140,7 +140,7 @@ func TestHandleDelayedMultiTask(t *testing.T) {
 		RoutingKey: "test",
 		ETA:        &eta,
 	}
-	broker, err := New(ctx, &config.Config{Broker: endpoints})
+	broker, err := New(ctx, &config.Config{Broker: endpoints}, false)
 	etcdBroker := broker.(*etcdBroker)
 	require.NoError(t, err)
 
@@ -196,7 +196,7 @@ func TestListWatchPendingTask(t *testing.T) {
 		UUID:       "test-0",
 		RoutingKey: "test",
 	}
-	broker, err := New(ctx, &config.Config{Broker: endpoints})
+	broker, err := New(ctx, &config.Config{Broker: endpoints}, false)
 	etcdBroker := broker.(*etcdBroker)
 	require.NoError(t, err)
 

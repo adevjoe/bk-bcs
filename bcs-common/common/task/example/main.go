@@ -85,11 +85,11 @@ func main() {
 			Database: mongoOpts.Database,
 		},
 	}
-	broker, err := etcdbroker.New(ctx, serverConfig)
+	broker, err := etcdbroker.New(ctx, serverConfig, false)
 	if err != nil {
 		panic(err)
 	}
-	lock, err := etcdlock.New(ctx, serverConfig, 3)
+	lock, err := etcdlock.New(ctx, serverConfig, 3, false)
 	if err != nil {
 		panic(lock)
 	}

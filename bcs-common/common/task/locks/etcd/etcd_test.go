@@ -31,7 +31,7 @@ func TestLock(t *testing.T) {
 	}
 	t.Parallel()
 
-	locker, err := New(context.Background(), &config.Config{Lock: endpoints}, 3)
+	locker, err := New(context.Background(), &config.Config{Lock: endpoints}, 3, false)
 	require.NoError(t, err)
 
 	lockDuration := time.Second * 10
@@ -63,7 +63,7 @@ func TestLockWithRetries(t *testing.T) {
 	}
 	t.Parallel()
 
-	locker, err := New(context.Background(), &config.Config{Lock: endpoints}, 3)
+	locker, err := New(context.Background(), &config.Config{Lock: endpoints}, 3, false)
 	require.NoError(t, err)
 
 	lockDuration := time.Second * 10
@@ -91,7 +91,7 @@ func TestLockWithMs(t *testing.T) {
 	}
 	t.Parallel()
 
-	locker, err := New(context.Background(), &config.Config{Lock: endpoints}, 3)
+	locker, err := New(context.Background(), &config.Config{Lock: endpoints}, 3, false)
 	require.NoError(t, err)
 
 	lockDuration := time.Millisecond * 10
