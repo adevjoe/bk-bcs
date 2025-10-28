@@ -391,7 +391,7 @@ func (b *etcdBroker) nextTask(ctx context.Context, queue string, consumerTag str
 			continue
 		}
 
-		d, err := NewDelivery(ctx, b.client, b, k, consumerTag)
+		d, err := NewDelivery(ctx, b.client, k, consumerTag)
 		if err != nil {
 			continue
 		}
