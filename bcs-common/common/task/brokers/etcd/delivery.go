@@ -44,7 +44,7 @@ type deliver struct {
 }
 
 // NewDelivery create the task delivery
-func NewDelivery(ctx context.Context, client *clientv3.Client, broker *etcdBroker, key string, node string) (Delivery, error) {
+func NewDelivery(ctx context.Context, client *clientv3.Client, key string, node string) (Delivery, error) {
 
 	d := &deliver{
 		ctx:    ctx,
