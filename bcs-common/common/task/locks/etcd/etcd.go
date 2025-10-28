@@ -48,15 +48,18 @@ type etcdLock struct {
 }
 
 // New ..
-func New(ctx context.Context, conf *config.Config, retries int) (iface.Lock, error) {
+func New(ctx context.Context, conf *config.Config, retries int, enableTrace bool) (iface.Lock, error) {
 	etcdConf := clientv3.Config{
 		Endpoints:   []string{conf.Lock},
 		Context:     ctx,
 		DialTimeout: time.Second * 5,
 		TLS:         conf.TLSConfig,
-		DialOptions: []grpc.DialOption{
+	}
+
+	if enableTrace {
+		etcdConf.DialOptions = []grpc.DialOption{
 			grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
-		},
+		}
 	}
 
 	client, err := clientv3.New(etcdConf)

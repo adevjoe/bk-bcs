@@ -39,15 +39,18 @@ type etcdRevoker struct {
 }
 
 // New ..
-func New(ctx context.Context, conf *config.Config) (iface.Revoker, error) {
+func New(ctx context.Context, conf *config.Config, enableTrace bool) (iface.Revoker, error) {
 	etcdConf := clientv3.Config{
 		Endpoints:   []string{conf.Broker}, // 复用broker的etcd配置
 		Context:     ctx,
 		DialTimeout: time.Second * 5,
 		TLS:         conf.TLSConfig,
-		DialOptions: []grpc.DialOption{
+	}
+
+	if enableTrace {
+		etcdConf.DialOptions = []grpc.DialOption{
 			grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
-		},
+		}
 	}
 
 	client, err := clientv3.New(etcdConf)

@@ -48,16 +48,21 @@ type etcdBackend struct {
 }
 
 // New ..
-func New(ctx context.Context, conf *config.Config) (iface.Backend, error) {
+func New(ctx context.Context, conf *config.Config, enableTrace bool) (iface.Backend, error) {
+
 	etcdConf := clientv3.Config{
 		Endpoints:   []string{conf.ResultBackend},
 		Context:     ctx,
 		DialTimeout: time.Second * 5,
 		TLS:         conf.TLSConfig,
-		DialOptions: []grpc.DialOption{
-			grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
-		},
 	}
+
+	if enableTrace {
+		etcdConf.DialOptions = []grpc.DialOption{
+			grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+		}
+	}
+
 	client, err := clientv3.New(etcdConf)
 	if err != nil {
 		return nil, err
@@ -253,6 +258,7 @@ func (b *etcdBackend) SetStateFailure(signature *tasks.Signature, err string) er
 
 // GetState ..
 func (b *etcdBackend) GetState(taskUUID string) (*tasks.TaskState, error) {
+
 	return b.getState(b.ctx, taskUUID)
 }
 
@@ -262,6 +268,7 @@ func (b *etcdBackend) getState(ctx context.Context, taskUUID string) (*tasks.Tas
 	defer span.End()
 
 	span.SetAttributes(attribute.String("task.uuid", taskUUID))
+
 	key := fmt.Sprintf(taskKey, taskUUID)
 	resp, err := b.client.Get(ctx, key)
 	if err != nil {
@@ -292,6 +299,7 @@ func (b *etcdBackend) mergeNewTaskState(newState *tasks.TaskState) {
 
 // PurgeState ..
 func (b *etcdBackend) PurgeState(taskUUID string) error {
+
 	key := fmt.Sprintf(taskKey, taskUUID)
 	_, err := b.client.Delete(b.ctx, key)
 	return err

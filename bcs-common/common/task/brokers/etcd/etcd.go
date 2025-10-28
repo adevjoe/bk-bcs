@@ -60,15 +60,18 @@ type etcdBroker struct {
 }
 
 // New ..
-func New(ctx context.Context, conf *config.Config) (iface.Broker, error) {
+func New(ctx context.Context, conf *config.Config, enableTrace bool) (iface.Broker, error) {
+
 	etcdConf := clientv3.Config{
 		Endpoints:   []string{conf.Broker},
 		Context:     ctx,
 		DialTimeout: time.Second * 5,
 		TLS:         conf.TLSConfig,
-		DialOptions: []grpc.DialOption{
+	}
+	if enableTrace {
+		etcdConf.DialOptions = []grpc.DialOption{
 			grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
-		},
+		}
 	}
 
 	client, err := clientv3.New(etcdConf)
@@ -92,6 +95,8 @@ func New(ctx context.Context, conf *config.Config) (iface.Broker, error) {
 // nolint
 // StartConsuming ...
 func (b *etcdBroker) StartConsuming(consumerTag string, concurrency int, taskProcessor iface.TaskProcessor) (bool, error) {
+	log.INFO.Printf("StartConsuming, consumerTag = [%s],concurrency=[%d]", consumerTag, concurrency)
+
 	if concurrency < 1 {
 		concurrency = runtime.NumCPU()
 	}
@@ -386,7 +391,7 @@ func (b *etcdBroker) nextTask(ctx context.Context, queue string, consumerTag str
 			continue
 		}
 
-		d, err := NewDelivery(ctx, b.client, k, consumerTag)
+		d, err := NewDelivery(ctx, b.client, b, k, consumerTag)
 		if err != nil {
 			continue
 		}
